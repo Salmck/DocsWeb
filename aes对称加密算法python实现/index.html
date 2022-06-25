@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Aes对称加密算法python实现 - Kevin Baylor's Docs</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css">
+
+        <script src="../js/jquery-1.10.2.min.js" defer></script>
+        <script src="../js/bootstrap.min.js" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+        <script>hljs.initHighlightingOnLoad();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">Kevin Baylor's Docs</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href=".." class="nav-link">介绍</a>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">文档 <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../docs/python闭包问题全局变量局部变量作用域nonlocal_global.md" class="dropdown-item">全局变量局部变量作用域</a>
+</li>
+                                    
+<li>
+    <a href="../docs/rsa加密算法.md" class="dropdown-item">rsa加密算法</a>
+</li>
+                                    
+<li>
+    <a href="../docs/加密模式.md" class="dropdown-item">加密模式</a>
+</li>
+                                    
+<li>
+    <a href="../docs/加密解密攻击方法，唯密文攻击、已知明文攻击、选择密文攻击、选择明文攻击（密码分析学中，四大攻击方式）.md" class="dropdown-item">加密算法攻击</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">数学 <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+  <li class="dropdown-submenu">
+    <a href="#" class="dropdown-item">概率</a>
+    <ul class="dropdown-menu">
+            
+<li>
+    <a href="../math/probability/probability graph of throwing a coin.md.md" class="dropdown-item">硬币</a>
+</li>
+    </ul>
+  </li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<p>注意：ECB模式不安全！！！最好用CBC模式。参考网页：</p>
+<p><a href="https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_block_chaining_(CBC)">https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_block_chaining_(CBC)</a></p>
+<h3 id="_1">原理</h3>
+<p>AES的加密流程：</p>
+<ol>
+<li>把明文按照128bit拆分成若干个明文块。</li>
+<li>按照选择的填充方式来填充最后一个明文块。</li>
+<li>每一个明文块利用AES加密器和密钥，加密成密文块。</li>
+<li>拼接所有的密文块，成为最终的密文结果。</li>
+</ol>
+<p>想要搞明白AES算法，首先要搞清楚三个基本概念。秘钥，填充，模式</p>
+<p>秘钥：</p>
+<ul>
+<li>对称加密之所以对称就是因为这类算法对明文的加密和解密使用的是同一个密钥。</li>
+</ul>
+<p>AES支持三种长度的密钥：128位，192位，256位</p>
+<p>填充：</p>
+<ul>
+<li>说到填充一定要说一下，AES 分组加密的特性，AES 加密并不是一股脑将明文加密成密文的，而是把明文拆分成一个个独立的明文块，且每个明文块128bit。</li>
+<li>假如一段明文长度是196bit，如果按每128bit一个明文块来拆分的话，第二个明文块只有64bit，不足128bit。这时候怎么办呢？就需要对明文块进行填充（Padding）。</li>
+</ul>
+<p>填充的类型：（主要用到的有前三种）</p>
+<ul>
+<li>NoPadding</li>
+<li>PKCS7Padding</li>
+<li>ZeroPadding</li>
+<li>AnsiX923</li>
+<li>Iso10126</li>
+<li>Iso97971</li>
+</ul>
+<p>模式：</p>
+<ul>
+<li>AES的工作模式，体现在把明文块加密成密文块的处理过程中。AES加密算法提供了五种不同的工作模式：CBC、ECB、CTR、CFB、OFB</li>
+<li>模式之间的主题思想是近似的，在处理细节上有一些差别。</li>
+</ul>
+<p>ECB模式：</p>
+<ul>
+<li>ECB模式（Electronic Codebook Book）是最简单的工作模式，在该模式下，每一个明文块的加密都是完全独立，互不干涉的。</li>
+<li>这样的好处是什么呢？</li>
+<li>简单</li>
+<li>有利于并行计算</li>
+<li>缺点同样也很明显：</li>
+</ul>
+<p>相同的明文块经过加密会变成相同的密文块，因此安全性较差。</p>
+<p>CBC模式：</p>
+<ul>
+<li>CBC模式（Cipher Block Chaining）引入了一个新的概念：初始向量IV（Initialization Vector）。IV是做什么用的呢？它的作用和MD5的“加盐”有些类似，目的是防止同样的明文块始终加密成同样的密文块。</li>
+<li>CBC模式在每一个明文块加密前会让明文块和一个值先做异或操作。</li>
+<li>IV作为初始化变量，参与第一个明文块的异或，后续的每一个明文块和它 前一个明文块所加密出的密文块相异或。这样相同的明文块加密出的密文块显然是不一样的。</li>
+</ul>
+<p>CBC模式的好处是什么呢？安全性更高</p>
+<p>坏处也很明显：</p>
+<ol>
+<li>无法并行计算，性能上不如ECB</li>
+<li>引入初始化向量IV，增加复杂度</li>
+</ol>
+<h3 id="python">python实现</h3>
+<pre><code class="language-python">from Crypto.Cipher import AES
+import base64
+import binascii
+
+# 数据类
+class MData():
+    def __init__(self, data = b&quot;&quot;,characterSet='utf-8'):
+        # data肯定为bytes
+        self.data = data
+        self.characterSet = characterSet
+
+    def saveData(self,FileName):
+        with open(FileName,'wb') as f:
+            f.write(self.data)
+
+    def fromString(self,data):
+        self.data = data.encode(self.characterSet)
+        return self.data
+
+    def fromBase64(self,data):
+        self.data = base64.b64decode(data.encode(self.characterSet))
+        return self.data
+
+    def fromHexStr(self,data):
+        self.data = binascii.a2b_hex(data)
+        return self.data
+
+    def toString(self):
+        return self.data.decode(self.characterSet)
+
+    def toBase64(self):
+        return base64.b64encode(self.data).decode()
+
+    def toHexStr(self):
+        return binascii.b2a_hex(self.data).decode()
+
+    def toBytes(self):
+        return self.data
+
+    def __str__(self):
+        try:
+            return self.toString()
+        except Exception:
+            return self.toBase64()
+
+
+### 封装类
+class AEScryptor():
+    def __init__(self,key,mode,iv = '',paddingMode= &quot;NoPadding&quot;,characterSet =&quot;utf-8&quot;):
+        '''
+        构建一个AES对象
+        key: 秘钥，字节型数据
+        mode: 使用模式，只提供两种，AES.MODE_CBC, AES.MODE_ECB
+        iv： iv偏移量，字节型数据
+        paddingMode: 填充模式，默认为NoPadding, 可选NoPadding，ZeroPadding，PKCS5Padding，PKCS7Padding
+        characterSet: 字符集编码
+        '''
+        self.key = key
+        self.mode = mode
+        self.iv = iv
+        self.characterSet = characterSet
+        self.paddingMode = paddingMode
+        self.data = &quot;&quot;
+
+    def __ZeroPadding(self,data):
+        data += b'\x00'
+        while len(data) % 16 != 0:
+            data += b'\x00'
+        return data
+
+    def __StripZeroPadding(self,data):
+        data = data[:-1]
+        while len(data) % 16 != 0:
+            data = data.rstrip(b'\x00')
+            if data[-1] != b&quot;\x00&quot;:
+                break
+        return data
+
+    def __PKCS5_7Padding(self,data):
+        needSize = 16-len(data) % 16
+        if needSize == 0:
+            needSize = 16
+        return data + needSize.to_bytes(1,'little')*needSize
+
+    def __StripPKCS5_7Padding(self,data):
+        paddingSize = data[-1]
+        return data.rstrip(paddingSize.to_bytes(1,'little'))
+
+    def __paddingData(self,data):
+        if self.paddingMode == &quot;NoPadding&quot;:
+            if len(data) % 16 == 0:
+                return data
+            else:
+                return self.__ZeroPadding(data)
+        elif self.paddingMode == &quot;ZeroPadding&quot;:
+            return self.__ZeroPadding(data)
+        elif self.paddingMode == &quot;PKCS5Padding&quot; or self.paddingMode == &quot;PKCS7Padding&quot;:
+            return self.__PKCS5_7Padding(data)
+        else:
+            print(&quot;不支持Padding&quot;)
+
+    def __stripPaddingData(self,data):
+        if self.paddingMode == &quot;NoPadding&quot;:
+            return self.__StripZeroPadding(data)
+        elif self.paddingMode == &quot;ZeroPadding&quot;:
+            return self.__StripZeroPadding(data)
+
+        elif self.paddingMode == &quot;PKCS5Padding&quot; or self.paddingMode == &quot;PKCS7Padding&quot;:
+            return self.__StripPKCS5_7Padding(data)
+        else:
+            print(&quot;不支持Padding&quot;)
+
+    def setCharacterSet(self,characterSet):
+        '''
+        设置字符集编码
+        characterSet: 字符集编码
+        '''
+        self.characterSet = characterSet
+
+    def setPaddingMode(self,mode):
+        '''
+        设置填充模式
+        mode: 可选NoPadding，ZeroPadding，PKCS5Padding，PKCS7Padding
+        '''
+        self.paddingMode = mode
+
+    def decryptFromBase64(self,entext):
+        '''
+        从base64编码字符串编码进行AES解密
+        entext: 数据类型str
+        '''
+        mData = MData(characterSet=self.characterSet)
+        self.data = mData.fromBase64(entext)
+        return self.__decrypt()
+
+    def decryptFromHexStr(self,entext):
+        '''
+        从hexstr编码字符串编码进行AES解密
+        entext: 数据类型str
+        '''
+        mData = MData(characterSet=self.characterSet)
+        self.data = mData.fromHexStr(entext)
+        return self.__decrypt()
+
+    def decryptFromString(self,entext):
+        '''
+        从字符串进行AES解密
+        entext: 数据类型str
+        '''
+        mData = MData(characterSet=self.characterSet)
+        self.data = mData.fromString(entext)
+        return self.__decrypt()
+
+    def decryptFromBytes(self,entext):
+        '''
+        从二进制进行AES解密
+        entext: 数据类型bytes
+        '''
+        self.data = entext
+        return self.__decrypt()
+
+    def encryptFromString(self,data):
+        '''
+        对字符串进行AES加密
+        data: 待加密字符串，数据类型为str
+        '''
+        self.data = data.encode(self.characterSet)
+        return self.__encrypt()
+
+    def __encrypt(self):
+        if self.mode == AES.MODE_CBC:
+            aes = AES.new(self.key,self.mode,self.iv) 
+        elif self.mode == AES.MODE_ECB:
+            aes = AES.new(self.key,self.mode) 
+        else:
+            print(&quot;不支持这种模式&quot;)  
+            return           
+
+        data = self.__paddingData(self.data)
+        enData = aes.encrypt(data)
+        return MData(enData)
+
+    def __decrypt(self):
+        if self.mode == AES.MODE_CBC:
+            aes = AES.new(self.key,self.mode,self.iv) 
+        elif self.mode == AES.MODE_ECB:
+            aes = AES.new(self.key,self.mode) 
+        else:
+            print(&quot;不支持这种模式&quot;)  
+            return           
+        data = aes.decrypt(self.data)
+        mData = MData(self.__stripPaddingData(data),characterSet=self.characterSet)
+        return mData
+
+
+if __name__ == '__main__':
+    key = b&quot;1234567812345678&quot;
+    iv =  b&quot;0000000000000000&quot;
+    aes = AEScryptor(key,AES.MODE_CBC,iv,paddingMode= &quot;ZeroPadding&quot;,characterSet='utf-8')
+
+    data = &quot;好好学习&quot;
+    rData = aes.encryptFromString(data)
+    print(&quot;密文：&quot;,rData.toBase64())
+    rData = aes.decryptFromBase64(rData.toBase64())
+    print(&quot;明文：&quot;,rData)
+</code></pre></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js" defer></script>
+        <script src="../search/main.js" defer></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
